@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
-import src.model.mipnerf360.helper as helper
+import src.model.fognerf.helper as helper
 import utils.store_image as store_image
 from src.model.interface import LitModel
 
@@ -442,9 +442,16 @@ class LitFogNeRF(LitModel):
             batch, train_frac, False, False, self.near, self.far
         )
         rgb = rendered_results[-1]["rgb"]
+        depth = rendered_results[-1]["depth"]
         target = batch["target"]
+        transmittance = torch.exp(-self.beta * 2 * depth).repeat(1, 3)
+        foggy_rgb = rgb * transmittance + self.airlight * (1 - transmittance)
+        
         ret["target"] = target
         ret["rgb"] = rgb
+        ret["depth"] = depth
+        ret["foggy_rgb"] = foggy_rgb
+        
         return ret
 
     def validation_step(self, batch, batch_idx):
@@ -530,6 +537,7 @@ class LitFogNeRF(LitModel):
             else dmodule.test_image_sizes
         )
         rgbs = self.alter_gather_cat(outputs, "rgb", all_image_sizes)
+        foggy_rgbs = self.alter_gather_cat(outputs, "foggy_rgb", all_image_sizes)
         targets = self.alter_gather_cat(outputs, "target", all_image_sizes)
         psnr = self.psnr(rgbs, targets, dmodule.i_train, dmodule.i_val, dmodule.i_test)
         ssim = self.ssim(rgbs, targets, dmodule.i_train, dmodule.i_val, dmodule.i_test)
@@ -545,6 +553,10 @@ class LitFogNeRF(LitModel):
             image_dir = os.path.join(self.logdir, "render_model")
             os.makedirs(image_dir, exist_ok=True)
             store_image.store_image(image_dir, rgbs)
+            
+            foggy_image_dir = os.path.join(self.logdir, "foggy_render_model")
+            os.makedirs(foggy_image_dir, exist_ok=True)
+            store_image.store_image(foggy_image_dir, foggy_rgbs)
 
             result_path = os.path.join(self.logdir, "results.json")
             self.write_stats(result_path, psnr, ssim, lpips)

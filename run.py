@@ -176,19 +176,23 @@ def run(
         trainer.fit(model, data_module, ckpt_path=ckpt_path)
 
     if run_eval:
-        ckpt_path = (
-            f"{logdir}/best.ckpt"
-            if model_name != "mipnerf360"
-            else f"{logdir}/last.ckpt"
-        )
+        # ckpt_path = (
+        #     f"{logdir}/best.ckpt"
+        #     if model_name != "mipnerf360"
+        #     else f"{logdir}/last.ckpt"
+        # )
+        # trainer.test(model, data_module, ckpt_path=ckpt_path)
+        ckpt_path = f"{logdir}/last.ckpt"
         trainer.test(model, data_module, ckpt_path=ckpt_path)
 
     if run_render:
-        ckpt_path = (
-            f"{logdir}/best.ckpt"
-            if model_name != "mipnerf360"
-            else f"{logdir}/last.ckpt"
-        )
+        # ckpt_path = (
+        #     f"{logdir}/best.ckpt"
+        #     if model_name != "mipnerf360" or model_name != "fognerf"
+        #     else f"{logdir}/last.ckpt"
+        # )
+        # trainer.predict(model, data_module, ckpt_path=ckpt_path)
+        ckpt_path = f"{logdir}/last.ckpt"
         trainer.predict(model, data_module, ckpt_path=ckpt_path)
 
 

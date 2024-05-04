@@ -271,6 +271,9 @@ def volumetric_rendering(
     bg_w = torch.clip(1 - acc[..., None], min=0)  # The weight of the background.
     rgb = (weights[..., None] * rgbs).sum(dim=-2) + bg_w * bg_rgbs
     rendering["rgb"] = rgb
+    
+    depth = (weights * tdist[:, :-1]).sum(dim=-1, keepdim=True)
+    rendering["depth"] = depth
 
     return rendering
 
