@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=3 python3 run.py --ginc configs/mipnerf360/carla.gin  --scene output_clear_world_with_depth
+CUDA_VISIBLE_DEVICES=2 python3 run.py --ginc configs/mipnerf360/carla.gin  --scene output_clear_world_with_depth
