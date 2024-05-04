@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python3 run.py --ginc configs/dvgo/llff.gin  --scene flower --ginb run.run_train=False

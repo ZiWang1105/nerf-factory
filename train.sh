@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python3 run.py --ginc configs/dvgo/carla.gin  --scene output_clear_world_new 

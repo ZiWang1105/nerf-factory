@@ -15,6 +15,7 @@ from src.data.litdata import (
     LitDataRefNeRFReal,
     LitDataShinyBlender,
     LitDataTnT,
+    LitDataCarla
 )
 from src.model.dvgo.model import LitDVGO
 from src.model.mipnerf360.model import LitMipNeRF360
@@ -23,6 +24,8 @@ from src.model.nerf.model import LitNeRF
 from src.model.nerfpp.model import LitNeRFPP
 from src.model.plenoxel.model import LitPlenoxel
 from src.model.refnerf.model import LitRefNeRF
+from src.model.fognerf.model import LitFogNeRF
+
 
 
 def select_model(
@@ -43,6 +46,8 @@ def select_model(
         return LitRefNeRF()
     elif model_name == "mipnerf360":
         return LitMipNeRF360()
+    elif model_name == "fognerf":
+        return LitFogNeRF()
 
     else:
         raise f"Unknown model named {model_name}"
@@ -69,6 +74,8 @@ def select_dataset(
         data_fun = LitDataShinyBlender
     elif dataset_name == "refnerf_real":
         data_fun = LitDataRefNeRFReal
+    elif dataset_name == "carla":
+        data_fun = LitDataCarla
 
     return data_fun(
         datadir=datadir,

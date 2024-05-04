@@ -343,7 +343,7 @@ def transform_pose_llff(poses):
     return ret
 
 
-def load_nerf_360_v2_data(
+def load_carla_data(
     datadir: str,
     scene_name: str,
     factor: int,
@@ -390,7 +390,7 @@ def load_nerf_360_v2_data(
     render_poses = pose_utils.pose_interp(extrinsics, 2)[:10]
 
     i_test = np.arange(num_frame)[::10]
-    i_val = np.arange(num_frame)[5::10]  #[0:1]
+    i_val = np.arange(num_frame)[5::10][:2]  #[0:1]
     i_train = np.array(
         [i for i in range(num_frame) if not i in i_test and not i in i_val]
     )

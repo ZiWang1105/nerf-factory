@@ -71,6 +71,7 @@ def run(
 
     logging.getLogger("lightning").setLevel(logging.ERROR)
     datadir = datadir.rstrip("/")
+    #print(f"model_name: {model_name}, dataset_name: {dataset_name}, scene_name: {scene_name}, seed: {seed}") #bug: scene_name: None
 
     exp_name = (
         model_name + "_" + dataset_name + "_" + scene_name + "_" + str(seed).zfill(3)

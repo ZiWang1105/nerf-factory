@@ -17,6 +17,47 @@ from src.data.data_util.refnerf_real import load_refnerf_real_data
 from src.data.data_util.shiny_blender import load_shiny_blender_data
 from src.data.data_util.tnt import load_tnt_data
 from src.data.interface import LitData
+from src.data.data_util.carla import load_carla_data
+
+@gin.configurable(denylist=["datadir", "scene_name"])
+class LitDataCarla(LitData):
+    def __init__(
+        self,
+        datadir: str,
+        scene_name: str,
+        factor: int = 1,
+        cam_scale_factor: float = 0.95,
+        train_skip: int = 1,
+        val_skip: int = 1,
+        test_skip: int = 1,
+        near: Optional[float] = None,
+        far: Optional[float] = None,
+        strict_scaling: bool = False,
+    ):
+        (
+            self.images,
+            self.intrinsics,
+            self.extrinsics,
+            self.image_sizes,
+            self.near,
+            self.far,
+            self.ndc_coeffs,
+            (self.i_train, self.i_val, self.i_test, self.i_all),
+            self.render_poses,
+        ) = load_carla_data(
+            datadir=datadir,
+            scene_name=scene_name,
+            factor=factor,
+            cam_scale_factor=cam_scale_factor,
+            train_skip=train_skip,
+            val_skip=val_skip,
+            test_skip=test_skip,
+            near=near,
+            far=far,
+            strict_scaling=strict_scaling,
+        )
+
+        super(LitDataCarla, self).__init__(datadir)
 
 
 @gin.configurable(denylist=["datadir", "scene_name"])
@@ -26,7 +67,7 @@ class LitDataLLFF(LitData):
         datadir: str,
         scene_name: str,
         # LLFF specific arguments
-        factor: int = 4,
+        factor: int = 1,
         llffhold: int = 8,
         spherify: bool = False,
         path_zflat: bool = False,
@@ -233,7 +274,7 @@ class LitDataNeRF360V2(LitData):
         self,
         datadir: str,
         scene_name: str,
-        factor: int = 4,
+        factor: int = 1,
         cam_scale_factor: float = 0.95,
         train_skip: int = 1,
         val_skip: int = 1,
