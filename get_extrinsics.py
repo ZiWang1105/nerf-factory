@@ -6,7 +6,7 @@ if __name__ == '__main__':
     
     poses_bounds = np.load(poses_bounds_path)
     # extrinsics = np.load(extrinsics_path)
-    
+
     poses_hwf = poses_bounds[:, :15].reshape(-1, 3, 5)
     poses = poses_hwf[:, :3, :4]
     hwf = poses_hwf[:, :3, -1:]
