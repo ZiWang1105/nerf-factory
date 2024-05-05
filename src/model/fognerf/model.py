@@ -416,13 +416,14 @@ class LitFogNeRF(LitModel):
         foggy_rgb = clear_rgb * transmittance + self.airlight * (1 - transmittance)
         
         target = batch["target"]
-        depth_target = batch["depth_target"]
+        depth_target = batch["target_depth"]
 
         rgbloss = helper.img2mse(foggy_rgb, target)
         
         # depth > 0 and depth < sky_depth
         depth_mask = (depth_target > 0) & (depth_target < self.sky_depth)
-        loss_depth = torch.mean((depth[depth_mask] - depth_target[depth_mask])**2)
+
+        loss_depth = torch.mean((depth[depth_mask] - depth_target[depth_mask])**2) * 0.1
 
         loss = 0.0
         loss = loss + loss_depth
@@ -450,13 +451,14 @@ class LitFogNeRF(LitModel):
         rgb = rendered_results[-1]["rgb"]
         depth = rendered_results[-1]["depth"]
         target = batch["target"]
-        transmittance = torch.exp(-self.beta * 2 * depth).repeat(1, 3)
+        transmittance = torch.exp(-self.beta * depth).repeat(1, 3)
         foggy_rgb = rgb * transmittance + self.airlight * (1 - transmittance)
         
         ret["target"] = target
         ret["rgb"] = rgb
         ret["depth"] = depth
         ret["foggy_rgb"] = foggy_rgb
+        ret["target_depth"] = batch["target_depth"]
         
         return ret
 
@@ -543,8 +545,10 @@ class LitFogNeRF(LitModel):
             else dmodule.test_image_sizes
         )
         rgbs = self.alter_gather_cat(outputs, "rgb", all_image_sizes)
+        depths = self.alter_gather_cat_depth(outputs, "depth", all_image_sizes)
         foggy_rgbs = self.alter_gather_cat(outputs, "foggy_rgb", all_image_sizes)
         targets = self.alter_gather_cat(outputs, "target", all_image_sizes)
+        target_depth = self.alter_gather_cat_depth(outputs, "target_depth", all_image_sizes)
         psnr = self.psnr(rgbs, targets, dmodule.i_train, dmodule.i_val, dmodule.i_test)
         ssim = self.ssim(rgbs, targets, dmodule.i_train, dmodule.i_val, dmodule.i_test)
         lpips = self.lpips(
@@ -563,6 +567,20 @@ class LitFogNeRF(LitModel):
             foggy_image_dir = os.path.join(self.logdir, "foggy_render_model")
             os.makedirs(foggy_image_dir, exist_ok=True)
             store_image.store_image(foggy_image_dir, foggy_rgbs)
+            
+            target_depth_dir = os.path.join(self.logdir, "target_depth")
+            os.makedirs(target_depth_dir, exist_ok=True)
+            # convert 1 channel depth to 3 channel depth
+            target_depth = [torch.cat([target_depth[i]]*3, dim=2) for i in range(len(target_depth))]
+            target_depth = [depth / depth.max() for depth in target_depth]
+            store_image.store_image(target_depth_dir, target_depth)
+            
+            depth_dir = os.path.join(self.logdir, "depth")
+            os.makedirs(depth_dir, exist_ok=True)
+            # convert 1 channel depth to 3 channel depth
+            depths = [torch.cat([depths[i]]*3, dim=2) for i in range(len(depths))]
+            depths = [depth / depth.max() for depth in depths]
+            store_image.store_image(depth_dir, depths)
 
             result_path = os.path.join(self.logdir, "results.json")
             self.write_stats(result_path, psnr, ssim, lpips)

@@ -408,7 +408,7 @@ class LitMipNeRF360(LitModel):
         rgbloss = helper.img2mse(rgb, target)
         depth_mask = (depth_target > 0) & (depth_target < self.sky_depth)
 
-        loss_depth = torch.mean((depth[depth_mask] - depth_target[depth_mask])**2) * 0.001
+        loss_depth = torch.mean((depth[depth_mask] - depth_target[depth_mask])**2) * 0.1
         # import ipdb 
         # ipdb.set_trace()
         loss = 0.0
