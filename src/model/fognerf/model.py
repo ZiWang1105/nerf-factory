@@ -389,7 +389,7 @@ class LitFogNeRF(LitModel):
         self.beta = nn.Parameter(torch.tensor(1.0))
         # self.airlight = nn.Parameter(torch.tensor(200.0 / 255.0))
         self.airlight = torch.tensor([[239.88567294, 240.907863, 242.32609744]]).cuda() / 255.0 # output_clear_world_with_depth_1822-1999_physics_fog
-        
+        self.sky_depth = 600.0
         # self.airlight = torch.tensor([[220.46647371, 222.29956585, 231.10323203]]).cuda() / 255.0 # output_clear_world_with_depth_physics_fog
         # self.airlight = torch.tensor([[245.22913652, 246.8750603, 249.18813314]]).cuda() / 255.0 # output_foggy_world
 
@@ -416,10 +416,16 @@ class LitFogNeRF(LitModel):
         foggy_rgb = clear_rgb * transmittance + self.airlight * (1 - transmittance)
         
         target = batch["target"]
+        depth_target = batch["depth_target"]
 
         rgbloss = helper.img2mse(foggy_rgb, target)
+        
+        # depth > 0 and depth < sky_depth
+        depth_mask = (depth_target > 0) & (depth_target < self.sky_depth)
+        loss_depth = torch.mean((depth[depth_mask] - depth_target[depth_mask])**2)
 
         loss = 0.0
+        loss = loss + loss_depth
         loss = (
             loss + torch.sqrt(rgbloss + self.charb_padding**2) * self.data_loss_mult
         )

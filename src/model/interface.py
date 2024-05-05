@@ -33,6 +33,17 @@ class LitModel(pl.LightningModule):
             ret.append(all[curr : curr + h * w].reshape(h, w, 3))
             curr += h * w
         return ret
+    
+    def alter_gather_cat_depth(self, outputs, key, image_sizes):
+        each = torch.cat([output[key] for output in outputs])
+        all = self.all_gather(each).detach()
+        if all.dim() == 3:
+            all = all.permute((1, 0, 2)).flatten(0, 1)
+        ret, curr = [], 0
+        for (h, w) in image_sizes:
+            ret.append(all[curr : curr + h * w].reshape(h, w, 1))
+            curr += h * w
+        return ret
 
     @torch.no_grad()
     def psnr_each(self, preds, gts):

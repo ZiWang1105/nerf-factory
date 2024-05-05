@@ -17,9 +17,8 @@ LitData.chunk = 4096
 LitData.use_pixel_centers = True
 LitData.epoch_size = 10000
 
-
-LitDataNeRF360V2.near = 0.1
-LitDataNeRF360V2.far = 1e6
+LitDataCarla.near = 0.1
+LitDataCarla.far = 1e6
 
 MipNeRF360.opaque_background = True
 

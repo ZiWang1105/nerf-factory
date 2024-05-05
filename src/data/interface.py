@@ -154,6 +154,17 @@ class LitData(pl.LightningDataModule):
             images = np.zeros((n_dset + dummy_num, 3))
             images[:n_dset] = images_idx
             images[n_dset:] = images[:dummy_num]
+            
+        if hasattr(self, "depths"): 
+            include_depths= True
+            depths_idx = np.concatenate([self.depths[i].reshape(-1, 1) for i in idx])
+            depths = np.zeros((n_dset + dummy_num, 1))
+            depths[:n_dset] = depths_idx
+            depths[n_dset:] = depths[:dummy_num]            
+        else:
+            include_depths= False
+            
+        print('include_depths', include_depths)
 
         if _normals is not None:
             normals_idx = np.concatenate([_normals[i].reshape(-1, 4) for i in idx])
@@ -178,6 +189,9 @@ class LitData(pl.LightningDataModule):
             "multloss": multloss,
             "normals": normals,
         }
+        
+        if include_depths : 
+            rays_info["depths"] = depths
 
         return RaySet(rays_info), dummy_num
 
@@ -298,11 +312,68 @@ class LitData(pl.LightningDataModule):
         )
 
 
+# class RaySet(Dataset):
+#     def __init__(self, rays_info):
+
+#         # Image
+#         self.images = rays_info["images"]
+
+#         # Ray offset and direction
+#         self.rays_o = rays_info["rays_o"]
+#         self.rays_d = rays_info["rays_d"]
+#         self.viewdirs = rays_info["viewdirs"]
+
+#         # Ray radii (for MipNeRF)
+#         self.radii = rays_info["radii"]
+
+#         # MultLoss (for MipNeRF)
+#         self.multloss = rays_info["multloss"]
+
+#         # Normals (for RefNeRF)
+#         self.normals = rays_info["normals"]
+
+#         self.N = len(self.rays_d)
+
+#     def __getitem__(self, index):
+#         ret = {}
+#         ret["rays_o"] = self.rays_o[index]
+#         ret["rays_d"] = self.rays_d[index]
+#         ret["viewdirs"] = self.viewdirs[index]
+#         ret["target"] = np.zeros_like(ret["rays_o"])
+#         ret["radii"] = np.zeros((ret["rays_o"].shape[0], 1))
+#         ret["multloss"] = np.zeros((ret["rays_o"].shape[0], 1))
+#         ret["normals"] = np.zeros_like(ret["rays_o"])
+
+#         if self.images is not None:
+#             ret["target"] = torch.from_numpy(self.images[index])
+
+#         if self.radii is not None:
+#             ret["radii"] = self.radii[index]
+
+#         if self.multloss is not None:
+#             ret["multloss"] = self.multloss[index]
+
+#         if self.normals is not None:
+#             ret["normals"] = torch.from_numpy(self.normals[index])
+
+#         return ret
+
+#     def __len__(self):
+#         return self.N
+
+
 class RaySet(Dataset):
     def __init__(self, rays_info):
 
         # Image
         self.images = rays_info["images"]
+
+        # Depths
+        if "depths" in rays_info : 
+            self.depths = rays_info["depths"]
+            self.use_depths = True
+        else:
+            self.use_depths = False
 
         # Ray offset and direction
         self.rays_o = rays_info["rays_o"]
@@ -341,6 +412,10 @@ class RaySet(Dataset):
 
         if self.normals is not None:
             ret["normals"] = torch.from_numpy(self.normals[index])
+
+        if self.use_depths : 
+            ret["target_depth"] = torch.from_numpy(self.depths[index])
+        
 
         return ret
 

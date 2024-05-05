@@ -36,6 +36,7 @@ class LitDataCarla(LitData):
     ):
         (
             self.images,
+            self.depths, 
             self.intrinsics,
             self.extrinsics,
             self.image_sizes,

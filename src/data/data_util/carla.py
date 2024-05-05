@@ -360,6 +360,16 @@ def load_carla_data(
     poses, bds, imgs = _load_data(basedir, factor=factor)
     # factor=8 downsamples original imgs by 8x
 
+    depth_dir = os.path.join(basedir, "depth")
+    depth_files = [
+        os.path.join(depth_dir, f)
+        for f in sorted(os.listdir(depth_dir))
+        if f.endswith("npy")
+    ]
+    
+    depths = [np.load(f) for f in depth_files]
+    depths = np.stack(depths, 0)[..., None]
+    # print(depths.shape)
     # Correct rotation matrix ordering and move variable dim to axis 0
     poses = np.concatenate([poses[:, 1:2, :], -poses[:, 0:1, :], poses[:, 2:, :]], 1)
     poses = np.moveaxis(poses, -1, 0).astype(np.float32)
@@ -386,6 +396,7 @@ def load_carla_data(
     extrinsics = np.einsum("nij, ki -> nkj", extrinsics, T)
     scene_scale = cam_scale_factor * sscale
     extrinsics[:, :3, 3] *= scene_scale
+    depths *= scene_scale
 
     render_poses = pose_utils.pose_interp(extrinsics, 2)[:10]
 
@@ -422,6 +433,7 @@ def load_carla_data(
 
     return (
         images,
+        depths,
         intrinsics,
         extrinsics,
         image_sizes,
