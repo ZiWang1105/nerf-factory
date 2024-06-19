@@ -1,1 +1,2 @@
-CUDA_VISIBLE_DEVICES=3 python3 run.py --ginc configs/fognerf/carla.gin  --scene output_clear_world_with_depth_1822-1999_physics_fog --seed=240504
+CUDA_VISIBLE_DEVICES=0 python3 run.py --ginc configs/fognerf/carla.gin  --scene output_clear_world_with_depth_0-100_physics_fog --seed=240505 &
+CUDA_VISIBLE_DEVICES=3 python3 run.py --ginc configs/fognerf/carla.gin  --scene output_clear_world_with_depth_1055-1155_physics_fog --seed=240505

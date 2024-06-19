@@ -32,7 +32,7 @@ def get_atmospheric_light(image, dark_channel):
     return A
 
 if __name__ == '__main__':
-    img_path = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_1822-1999_physics_fog/images/000000.png'
+    img_path = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_foggy_world_with_depth_160-240/images/000000.png'
     img = cv2.imread(img_path)
     dark = get_dark_channel(img)
     A = get_atmospheric_light(img, dark)

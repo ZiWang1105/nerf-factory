@@ -369,6 +369,8 @@ def load_carla_data(
     
     depths = [np.load(f) for f in depth_files]
     depths = np.stack(depths, 0)[..., None]
+    depths_mask = (depths < 600.0)
+    
     # print(depths.shape)
     # Correct rotation matrix ordering and move variable dim to axis 0
     poses = np.concatenate([poses[:, 1:2, :], -poses[:, 0:1, :], poses[:, 2:, :]], 1)
@@ -434,6 +436,7 @@ def load_carla_data(
     return (
         images,
         depths,
+        depths_mask, 
         intrinsics,
         extrinsics,
         image_sizes,

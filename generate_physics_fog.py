@@ -13,7 +13,7 @@ def get_fog(img_path, depth_path, output_path):
     norm_depth_img = depth_img_3c 
     
     # beta = np.abs(np.random.normal(5, 1, 1))[0]
-    beta = 0.02
+    beta = 0.015  # 0.02
     trans = np.exp(-norm_depth_img * beta)
     hazy = image * trans + A * (1 - trans)
     hazy = np.array(hazy, dtype=np.uint8)
@@ -22,9 +22,14 @@ def get_fog(img_path, depth_path, output_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img_dir', type=str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_1822-1999_physics_fog/images_without_fog')
-    parser.add_argument('--depth_dir', type = str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_1822-1999_physics_fog/depth')
-    parser.add_argument('--output_path', type = str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_1822-1999_physics_fog/images')
+    # parser.add_argument('--img_dir', type=str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_160-240_physics_fog/images_without_fog')
+    # parser.add_argument('--depth_dir', type = str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_160-240_physics_fog/depth')
+    # parser.add_argument('--output_path', type = str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_160-240_physics_fog/images')
+    
+    parser.add_argument('--img_dir', type=str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_728-828_physics_fog/images_without_fog')
+    parser.add_argument('--depth_dir', type = str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_728-828_physics_fog/depth')
+    parser.add_argument('--output_path', type = str, default = '/shortdata/ziwang/projects/nerf-factory/data/carla/output_clear_world_with_depth_728-828_physics_fog/images')
+    
     args = parser.parse_args()
     
     if not os.path.exists(args.output_path):

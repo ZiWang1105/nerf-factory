@@ -73,7 +73,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--carla_data_path', 
                         type=str, 
-                        default = '/shortdata/ziwang/projects/carla-simulator/PythonAPI/outputs/output_clear_world_with_depth')
+                        default = '/shortdata/ziwang/projects/carla-simulator/PythonAPI/outputs/output_clear_world_with_depth01')
     
     parser.add_argument('--output_path',
                         type=str,
@@ -81,15 +81,15 @@ if __name__ == '__main__':
     
     parser.add_argument('--start_frame', 
                         type=int, 
-                        default=1822)
+                        default=2)   
     
     parser.add_argument('--end_frame',
                         type=int,
-                        default=1999)
+                        default=101)
     
     parser.add_argument('--scene_name',
                         type=str,
-                        default='output_clear_world_with_depth_1822-1999')
+                        default='output_clear_world_with_depth_2-101_physics_fog')
     
     args = parser.parse_args()
     

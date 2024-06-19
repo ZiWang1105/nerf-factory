@@ -26,14 +26,14 @@ from src.model.interface import LitModel
 class MipNeRF360MLP(nn.Module):
     def __init__(
         self,
-        netdepth: int = 8,
-        netwidth: int = 256,
+        netdepth: int = 8, #
+        netwidth: int = 256, #
         bottleneck_width: int = 256,
         netdepth_condition: int = 1,
-        netwidth_condition: int = 128,
+        netwidth_condition: int = 128, #
         min_deg_point: int = 0,
         max_deg_point: int = 12,
-        skip_layer: int = 4,
+        skip_layer: int = 4, #
         skip_layer_dir: int = 4,
         num_rgb_channels: int = 3,
         num_density_channels: int = 1,
@@ -195,7 +195,7 @@ class PropMLP(MipNeRF360MLP):
 
 
 @gin.configurable()
-class FogMipNeRF360(nn.Module):
+class ScatterMipNeRF360(nn.Module):
     def __init__(
         self,
         num_prop_samples: int = 64,
@@ -225,14 +225,16 @@ class FogMipNeRF360(nn.Module):
             if name not in ["self", "__class__"]:
                 setattr(self, name, value)
 
-        super(FogMipNeRF360, self).__init__()
+        super(ScatterMipNeRF360, self).__init__()
         self.mlps = nn.ModuleList(
             [PropMLP() for _ in range(num_levels - 1)]
             + [
                 NeRFMLP(),
             ]
         )
-
+        ## change  ???
+        self.fog_mlp = MipNeRF360MLP()
+        
     def forward(self, batch, train_frac, randomized, is_train, near, far):
 
         bsz, _ = batch["rays_o"].shape
@@ -327,13 +329,19 @@ class FogMipNeRF360(nn.Module):
             ray_results = self.mlps[i_level](
                 gaussians, batch["viewdirs"], randomized, is_train
             )
+            fog_results = self.mlps[i_level](gaussians, batch["viewdirs"], randomized, is_train,
+                                            netdepth = 4,
+                                            netwidth =128,
+                                            netwidth_condition = 64,
+                                            skip_layer = 2,)
 
-            weights = helper.compute_alpha_weights(
+
+            weights, alpha, _ = helper.compute_alpha_weights(
                 ray_results["density"],
                 tdist,
                 batch["rays_d"],
                 opaque_background=self.opaque_background,
-            )[0]
+            )
 
             if self.bg_intensity_range[0] == self.bg_intensity_range[1]:
                 bg_rgbs = self.bg_intensity_range[0]
@@ -359,6 +367,7 @@ class FogMipNeRF360(nn.Module):
 
             ray_results["sdist"] = sdist
             ray_results["weights"] = weights
+            ray_results["alpha"] = alpha
 
             ray_history.append(ray_results)
             renderings.append(rendering)
@@ -385,7 +394,7 @@ class LitFogNeRF(LitModel):
                 setattr(self, name, value)
 
         super(LitFogNeRF, self).__init__()
-        self.model = FogMipNeRF360()
+        self.model = ScatterMipNeRF360()
         self.beta = nn.Parameter(torch.tensor(1.0))
         # self.airlight = nn.Parameter(torch.tensor(200.0 / 255.0))
         self.airlight = torch.tensor([[231.16835504, 233.24843222, 235.93198263]]).cuda() / 255.0 # output_foggy_world_with_depth_160-240
@@ -401,43 +410,83 @@ class LitFogNeRF(LitModel):
         self.far = self.trainer.datamodule.far
         self.white_bkgd = self.trainer.datamodule.white_bkgd
 
+    def get_entropy_ray(self, alpha) : 
+        sum_alpha = torch.sum(alpha, dim = 1, keepdim=True)
+        prob = alpha / (sum_alpha + 1e-3)
+        entropy = -1 * torch.sum(prob *torch.log(prob+1e-5), dim =1, keepdim=True)
+        mask = (sum_alpha > 0.05).float()
+        entropy_masked = entropy * mask 
+        assert(list(entropy.shape) == list(mask.shape) )
+        avg_entropy_masked = torch.sum(entropy_masked) / (torch.sum(mask) +1e-5)
+        if False :
+            print("sum_alpha",sum_alpha.shape)
+            print("mask",mask)
+            print("sum_alpha",sum_alpha)
+            print("entropy", entropy.shape)
+            print("entropy_masked", entropy_masked)
+            print(avg_entropy_masked)
+        return avg_entropy_masked, prob
+
     def training_step(self, batch, batch_idx):
-        # import ipdb
-        # ipdb.set_trace()
         max_steps = self.trainer.max_steps
         train_frac = self.global_step / max_steps
         rendered_results, ray_history = self.model(
             batch, train_frac, True, True, self.near, self.far
         )
-        clear_rgb = rendered_results[-1]["rgb"]
-        depth = rendered_results[-1]["depth"]#.detach()
+        clear_rgb = rendered_results[-1]["rgb"]#let rgb_coarse=rgb_fine
 
-        transmittance = torch.exp(-self.beta * depth).repeat(1, 3)
-        foggy_rgb = clear_rgb * transmittance + self.airlight * (1 - transmittance)
+        #Get entropy loss
+        alpha_coarse_detach = ray_history[-1]["alpha"]
+        alpha_fine_detach = ray_history[-1]["alpha"] # why [-1]
+        avg_entropy_masked_fine, prob_fine = self.get_entropy_ray(alpha_fine_detach)
+        avg_entropy_masked_coarse, prob_coarse = self.get_entropy_ray(alpha_coarse_detach)
+        tot_entropy = avg_entropy_masked_fine + avg_entropy_masked_coarse
+
+        #Get entropy defog loss
+
+
+
+        depth = rendered_results[-1]["depth"]
+
+        # import ipdb
+        # ipdb.set_trace()
+        # max_steps = self.trainer.max_steps
+        # train_frac = self.global_step / max_steps
+        # rendered_results, ray_history = self.model(
+        #     batch, train_frac, True, True, self.near, self.far
+        # )
+        # clear_rgb = rendered_results[-1]["rgb"]
+        # depth = rendered_results[-1]["depth"]#.detach()
+        # # import ipdb
+        # # ipdb.set_trace()
+        # # print('beta', self.beta)
+        # # print('airlight', self.airlight)
+        # transmittance = torch.exp(-self.beta * depth).repeat(1, 3)
+        # foggy_rgb = clear_rgb * transmittance + self.airlight * (1 - transmittance)
         
-        target = batch["target"]
-        depth_target = batch["target_depth"]
-        depths_mask = batch["depths_mask"]
+        # target = batch["target"]
+        # depth_target = batch["target_depth"]
+        # depths_mask = batch["depths_mask"]
 
-        rgbloss = helper.img2mse(foggy_rgb, target)
+        # rgbloss = helper.img2mse(foggy_rgb, target)
         
-        # depth > 0 and depth < sky_depth
-        # depth_mask = (depth_target > 0) & (depth_target < self.sky_depth)
+        # # depth > 0 and depth < sky_depth
+        # # depth_mask = (depth_target > 0) & (depth_target < self.sky_depth)
 
-        loss_depth = torch.mean((depth[depths_mask] - depth_target[depths_mask])**2) * 0.1
+        # loss_depth = torch.mean((depth[depths_mask] - depth_target[depths_mask])**2) * 0.1
 
-        loss = 0.0
-        loss = loss + loss_depth
-        loss = (
-            loss + torch.sqrt(rgbloss + self.charb_padding**2) * self.data_loss_mult
-        )
-        loss = loss + self.interlevel_loss(ray_history) * self.interlevel_loss_mult
-        loss = loss + self.distortion_loss(ray_history) * self.distortion_loss_mult
+        # loss = 0.0
+        # loss = loss + loss_depth
+        # loss = (
+        #     loss + torch.sqrt(rgbloss + self.charb_padding**2) * self.data_loss_mult
+        # )
+        # loss = loss + self.interlevel_loss(ray_history) * self.interlevel_loss_mult
+        # loss = loss + self.distortion_loss(ray_history) * self.distortion_loss_mult
 
-        psnr = helper.mse2psnr(rgbloss)
+        # psnr = helper.mse2psnr(rgbloss)
 
-        self.log("train/loss", loss.item(), on_step=True, prog_bar=True)
-        self.log("train/psnr", psnr.item(), on_step=True, prog_bar=True)
+        # self.log("train/loss", loss.item(), on_step=True, prog_bar=True)
+        # self.log("train/psnr", psnr.item(), on_step=True, prog_bar=True)
 
         return loss
 

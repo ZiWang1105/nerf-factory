@@ -161,6 +161,12 @@ class LitData(pl.LightningDataModule):
             depths = np.zeros((n_dset + dummy_num, 1))
             depths[:n_dset] = depths_idx
             depths[n_dset:] = depths[:dummy_num]            
+            
+            depths_mask_idx = np.concatenate([self.depths_mask[i].reshape(-1, 1) for i in idx])
+            # bool depths_mask
+            depths_mask = np.zeros((n_dset + dummy_num, 1)).astype(np.bool)
+            depths_mask[:n_dset] = depths_mask_idx
+            depths_mask[n_dset:] = depths_mask[:dummy_num]
         else:
             include_depths= False
             
@@ -192,6 +198,7 @@ class LitData(pl.LightningDataModule):
         
         if include_depths : 
             rays_info["depths"] = depths
+            rays_info["depths_mask"] = depths_mask
 
         return RaySet(rays_info), dummy_num
 
@@ -371,6 +378,7 @@ class RaySet(Dataset):
         # Depths
         if "depths" in rays_info : 
             self.depths = rays_info["depths"]
+            self.depths_mask = rays_info["depths_mask"]
             self.use_depths = True
         else:
             self.use_depths = False
@@ -415,6 +423,7 @@ class RaySet(Dataset):
 
         if self.use_depths : 
             ret["target_depth"] = torch.from_numpy(self.depths[index])
+            ret["depths_mask"] = torch.from_numpy(self.depths_mask[index])
         
 
         return ret

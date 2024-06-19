@@ -236,6 +236,9 @@ def R_to_axis_angle(matrix):
     t = matrix[:, 0, 0] + matrix[:, 1, 1] + matrix[:, 2, 2]
     theta = np.arctan2(r, t - 1)
 
+    invalid_mask = (r == 0) | np.isnan(r)
+    epsilon = 1e-8
+    r[invalid_mask] = epsilon
     # Normalise the axis.
     axis = axis / r[:, None]
 
